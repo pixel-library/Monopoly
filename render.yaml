@@ -10,6 +10,6 @@ services:
       - key: NODE_ENV
         value: production
       - key: CLIENT_URL
-        value: https://monopoly-frontend.netlify.app
+        value: https://monopoly-board-game.netlify.app
       - key: PORT
         value: 3001
