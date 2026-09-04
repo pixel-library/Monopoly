@@ -247,7 +247,7 @@ io.on('connection', (socket) => {
     const ctx = authorizeOnlineAction(socket, roomCode, { action: 'PROPOSE_TRADE', requirePhase: 'PLAYING', requireAlive: true });
     if (!ctx) return;
     const { gameState, player: sender } = ctx;
-    const receiver = gameState.players.find(p => p.id === tradeData.receiverId);
+    const receiver = gameState.players.find(p => p.id === tradeData.toPlayerId);
     if (!receiver || sender.id === receiver.id) return;
 
     const offeredProperties = tradeData.offeredPropertyIds || [];

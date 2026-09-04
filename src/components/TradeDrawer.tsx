@@ -31,11 +31,17 @@ export default function TradeDrawer({ onClose, counterTrade }: TradeDrawerProps)
 
   useEffect(() => {
     if (counterTrade && counterTrade.status === 'pending') {
-      setOfferMoney(counterTrade.offeredMoney);
-      setOfferProperties(counterTrade.offeredProperties);
-      setRequestMoney(counterTrade.requestedMoney);
-      setRequestProperties(counterTrade.requestedProperties);
-      setTargetPlayerId(counterTrade.toPlayerId);
+      // For a counter offer, we swap the roles.
+      // What the original sender requested is now what we (the new sender) offer.
+      setOfferMoney(counterTrade.requestedMoney);
+      setOfferProperties(counterTrade.requestedProperties);
+      
+      // What the original sender offered is now what we (the new sender) request.
+      setRequestMoney(counterTrade.offeredMoney);
+      setRequestProperties(counterTrade.offeredProperties);
+      
+      // The target player is the original sender.
+      setTargetPlayerId(counterTrade.fromPlayerId);
     }
   }, [counterTrade?.id, counterTrade?.status]);
 
