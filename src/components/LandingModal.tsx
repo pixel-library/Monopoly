@@ -15,9 +15,10 @@ interface LandingModalProps {
   roomCode?: string | null;
   onClose: () => void;
   onActionComplete?: () => void;
+  isMyTurn?: boolean;
 }
 
-export default function LandingModal({ tile, player, players, roomCode, onClose, onActionComplete }: LandingModalProps) {
+export default function LandingModal({ tile, player, players, roomCode, onClose, onActionComplete, isMyTurn = true }: LandingModalProps) {
   const { declinePropertyPurchase } = useGameStore();
   const country = tile.country ? getCountryById(tile.country) : null;
   const rentObj = typeof tile.rent === 'object' && 'base' in tile.rent ? tile.rent : null;
@@ -181,44 +182,52 @@ export default function LandingModal({ tile, player, players, roomCode, onClose,
 
           {tile.price && !isOwned && (
             <div className="pt-2">
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={handleBuy}
-                  disabled={!canBuy || !!processing}
-                  className="col-span-1 flex flex-col items-center gap-1 py-3 px-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-bold text-xs transition-all active:scale-95 shadow-md disabled:shadow-none"
-                >
-                  {processing === 'buy' ? (
-                    <Loader2 size={18} className="animate-spin" />
-                  ) : (
-                    <ShoppingCart size={18} />
-                  )}
-                  <span>{processing === 'buy' ? 'Buying...' : 'Buy'}</span>
-                </button>
-                <button
-                  onClick={handleAuction}
-                  disabled={!!processing}
-                  className="col-span-1 flex flex-col items-center gap-1 py-3 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-xs transition-all active:scale-95 shadow-md disabled:opacity-50"
-                >
-                  {processing === 'auction' ? (
-                    <Loader2 size={18} className="animate-spin" />
-                  ) : (
-                    <Gavel size={18} />
-                  )}
-                  <span>{processing === 'auction' ? 'Starting...' : 'Auction'}</span>
-                </button>
-                <button
-                  onClick={handlePass}
-                  disabled={!!processing}
-                  className="col-span-1 flex flex-col items-center gap-1 py-3 px-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-xl font-bold text-xs transition-all active:scale-95 disabled:opacity-50"
-                >
-                  {processing === 'pass' ? (
-                    <Loader2 size={18} className="animate-spin" />
-                  ) : (
-                    <SkipForward size={18} />
-                  )}
-                  <span>{processing === 'pass' ? 'Passing...' : 'Pass'}</span>
-                </button>
-              </div>
+              {isMyTurn ? (
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={handleBuy}
+                    disabled={!canBuy || !!processing}
+                    className="col-span-1 flex flex-col items-center gap-1 py-3 px-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl font-bold text-xs transition-all active:scale-95 shadow-md disabled:shadow-none"
+                  >
+                    {processing === 'buy' ? (
+                      <Loader2 size={18} className="animate-spin" />
+                    ) : (
+                      <ShoppingCart size={18} />
+                    )}
+                    <span>{processing === 'buy' ? 'Buying...' : 'Buy'}</span>
+                  </button>
+                  <button
+                    onClick={handleAuction}
+                    disabled={!!processing}
+                    className="col-span-1 flex flex-col items-center gap-1 py-3 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-xs transition-all active:scale-95 shadow-md disabled:opacity-50"
+                  >
+                    {processing === 'auction' ? (
+                      <Loader2 size={18} className="animate-spin" />
+                    ) : (
+                      <Gavel size={18} />
+                    )}
+                    <span>{processing === 'auction' ? 'Starting...' : 'Auction'}</span>
+                  </button>
+                  <button
+                    onClick={handlePass}
+                    disabled={!!processing}
+                    className="col-span-1 flex flex-col items-center gap-1 py-3 px-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 rounded-xl font-bold text-xs transition-all active:scale-95 disabled:opacity-50"
+                  >
+                    {processing === 'pass' ? (
+                      <Loader2 size={18} className="animate-spin" />
+                    ) : (
+                      <SkipForward size={18} />
+                    )}
+                    <span>{processing === 'pass' ? 'Passing...' : 'Pass'}</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="px-3 py-2 bg-amber-50 border border-amber-100 rounded-lg">
+                  <p className="text-xs text-amber-700 font-medium text-center">
+                    Waiting for {player.name} to decide...
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

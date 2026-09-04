@@ -10,9 +10,10 @@ interface ActionBarProps {
   roomCode?: string | null;
   onOpenTrade?: () => void;
   onOpenBuild?: () => void;
+  isMyTurn?: boolean;
 }
 
-export const ActionBar: React.FC<ActionBarProps> = ({ roomCode, onOpenTrade, onOpenBuild }) => {
+export const ActionBar: React.FC<ActionBarProps> = ({ roomCode, onOpenTrade, onOpenBuild, isMyTurn = true }) => {
   const { players, currentPlayerIndex, turnState, rollDiceAction, endTurn, buyProperty, declinePropertyPurchase, payDebt, declareBankruptcy } = useGameStore();
 
   const currentPlayer = players[currentPlayerIndex];

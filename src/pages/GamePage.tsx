@@ -39,11 +39,11 @@ export default function GamePage() {
   const landingShownRef = React.useRef(false);
 
   const currentPlayer = players[currentPlayerIndex];
-  const isMyTurn = currentPlayer?.isCurrentPlayer;
   const currentPlayerId = players.find(p => p.isCurrentPlayer)?.id || '';
+  const isMyTurn = roomCode ? currentPlayerId === myPlayerId : currentPlayer?.isCurrentPlayer ?? false;
 
-  const canRoll = turnState.phase === 'ROLL' && !turnState.hasRolled;
-  const showRollAgain = turnState.phase === 'ACTION' && turnState.canRollAgain && !currentPlayer?.inJail;
+  const canRoll = turnState.phase === 'ROLL' && !turnState.hasRolled && isMyTurn;
+  const showRollAgain = turnState.phase === 'ACTION' && turnState.canRollAgain && !currentPlayer?.inJail && isMyTurn;
 
   const handleRoll = useCallback(() => {
     if (!currentPlayer) return;
@@ -325,6 +325,7 @@ export default function GamePage() {
             board={board}
             roomCode={roomCode}
             myPlayerId={myPlayerId}
+            isMyTurn={isMyTurn}
           />
         </main>
 
@@ -348,6 +349,7 @@ export default function GamePage() {
             onBuild={() => setShowBuild(true)}
             currentPlayer={currentPlayer}
             roomCode={roomCode}
+            myPlayerId={myPlayerId}
           />
         )}
       </AnimatePresence>
@@ -396,7 +398,10 @@ export default function GamePage() {
             players={players}
             roomCode={roomCode}
             onClose={() => setLandingTile(null)}
+
             onActionComplete={() => setLandingTile(null)}
+
+            isMyTurn={isMyTurn}
           />
         )}
       </AnimatePresence>

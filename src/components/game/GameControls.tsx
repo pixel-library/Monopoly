@@ -20,6 +20,7 @@ interface GameControlsProps {
   board: BoardTile[];
   roomCode?: string | null;
   myPlayerId?: string | null;
+  isMyTurn?: boolean;
 }
 
 export const GameControls: React.FC<GameControlsProps> = ({
@@ -27,13 +28,13 @@ export const GameControls: React.FC<GameControlsProps> = ({
   board,
   roomCode,
   myPlayerId,
+  isMyTurn,
 }) => {
   const { endTurn, bankHouses, bankHotels } = useGameStore();
 
   const currentTile = board[currentPlayer?.position ?? 0];
   const playerColor = PLAYER_COLOR_MAP[currentPlayer?.tokenId || ''] || '#888';
   const currentTileName = currentTile?.name || 'GO';
-  const isMyTurn = !!myPlayerId && currentPlayer?.id === myPlayerId;
 
   const handleEndTurn = () => {
     soundManager.play('click');
@@ -90,14 +91,16 @@ export const GameControls: React.FC<GameControlsProps> = ({
             <span>🏨 {bankHotels}</span>
           </div>
 
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={handleEndTurn}
-            className="px-2.5 py-1.5 rounded-lg font-bold text-xs text-gray-600 hover:text-red-600 border border-gray-200 hover:bg-gray-50 transition-all"
-          >
-            End Turn
-          </motion.button>
+          {isMyTurn && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleEndTurn}
+              className="px-2.5 py-1.5 rounded-lg font-bold text-xs text-gray-600 hover:text-red-600 border border-gray-200 hover:bg-gray-50 transition-all"
+            >
+              End Turn
+            </motion.button>
+          )}
 
           <motion.button
             whileHover={{ scale: 1.02 }}

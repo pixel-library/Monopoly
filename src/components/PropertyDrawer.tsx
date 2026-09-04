@@ -13,6 +13,7 @@ interface PropertyDrawerProps {
   onBuild?: () => void;
   currentPlayer: Player;
   roomCode?: string | null;
+  myPlayerId?: string | null;
 }
 
 const COLOR_GROUP_LABELS: Record<string, string> = {
@@ -26,20 +27,20 @@ const COLOR_GROUP_LABELS: Record<string, string> = {
   darkblue: 'Dark Blue',
 };
 
-export default function PropertyDrawer({ tile, players, onClose, onTrade, onBuild, currentPlayer, roomCode }: PropertyDrawerProps) {
+export default function PropertyDrawer({ tile, players, onClose, onTrade, onBuild, currentPlayer, roomCode, myPlayerId }: PropertyDrawerProps) {
   const { mortgagedProperties, mortgageProperty, unmortgageProperty, sellHouses, bankHouses, bankHotels, buyHouse, buyHotel } = useGameStore();
   const owner = players.find(p => p.properties.includes(tile.id));
   const isMortgaged = mortgagedProperties.includes(tile.id);
-  const isOwner = owner?.id === currentPlayer?.id;
+  const isLocalPlayerOwner = owner?.id === (roomCode ? myPlayerId : currentPlayer?.id);
 
   const rentObj = typeof tile.rent === 'object' ? tile.rent : null;
   const hasGroup = ownsCompleteGroup(currentPlayer, tile);
   const groupLabel = tile.countryName || (tile.colorGroup ? COLOR_GROUP_LABELS[tile.colorGroup] || tile.colorGroup : '');
-  const building = isOwner ? currentPlayer.buildings.find(b => b.propertyId === tile.id) : null;
+  const building = isLocalPlayerOwner ? currentPlayer.buildings.find(b => b.propertyId === tile.id) : null;
   const currentHouses = building?.houses || 0;
   const hasHotel = building?.hotel || false;
-  const canBuildHouse = isOwner && !hasHotel && currentHouses < 4 && canBuyHouse(currentPlayer, tile, mortgagedProperties);
-  const canBuildHotel = isOwner && !hasHotel && currentHouses === 4 && canBuyHotel(currentPlayer, tile, mortgagedProperties);
+  const canBuildHouse = isLocalPlayerOwner && !hasHotel && currentHouses < 4 && canBuyHouse(currentPlayer, tile, mortgagedProperties);
+  const canBuildHotel = isLocalPlayerOwner && !hasHotel && currentHouses === 4 && canBuyHotel(currentPlayer, tile, mortgagedProperties);
 
   const handleBuyHouse = () => {
     if (roomCode) {
@@ -112,7 +113,7 @@ export default function PropertyDrawer({ tile, players, onClose, onTrade, onBuil
           {owner ? (
             <div className="flex items-center gap-2">
               <span className="font-bold text-xs text-red-700">{owner.name}</span>
-              {isOwner && <span className="text-[9px] bg-red-100 text-red-700 px-1.5 py-0.25 rounded font-bold">YOU</span>}
+              {isLocalPlayerOwner && <span className="text-[9px] bg-red-100 text-red-700 px-1.5 py-0.25 rounded font-bold">YOU</span>}
             </div>
           ) : (
             <span className="text-xs font-bold text-red-700">UNOWNED (${tile.price || 0})</span>
@@ -177,7 +178,7 @@ export default function PropertyDrawer({ tile, players, onClose, onTrade, onBuil
               </div>
             </div>
 
-            {isOwner ? (
+            {isLocalPlayerOwner ? (
               hasGroup ? (
                 <div className="space-y-1.5">
                   {!hasHotel && currentHouses < 4 && (
@@ -237,7 +238,7 @@ export default function PropertyDrawer({ tile, players, onClose, onTrade, onBuil
 
         {/* Actions */}
         <div className="flex gap-2 pt-1">
-          {isOwner && tile.mortgageValue && (
+          {isLocalPlayerOwner && tile.mortgageValue && (
             isMortgaged ? (
               <button
                 onClick={handleUnmortgage}
@@ -255,7 +256,7 @@ export default function PropertyDrawer({ tile, players, onClose, onTrade, onBuil
             )
           )}
 
-          {!isOwner && owner && (
+          {!isLocalPlayerOwner && owner && (
             <button
               onClick={() => { onTrade?.(); onClose(); }}
               className="flex-1 border border-gray-200 text-gray-700 font-semibold py-2 rounded-lg text-xs hover:bg-gray-50 transition-all"
@@ -264,7 +265,7 @@ export default function PropertyDrawer({ tile, players, onClose, onTrade, onBuil
             </button>
           )}
 
-          {isOwner && tile.type === 'PROPERTY' && tile.houseCost && onBuild && (
+          {isLocalPlayerOwner && tile.type === 'PROPERTY' && tile.houseCost && onBuild && (
             <button
               onClick={() => { onBuild(); onClose(); }}
               className="flex-1 border border-gray-200 text-gray-700 font-semibold py-2 rounded-lg text-xs hover:bg-gray-50 transition-all"
