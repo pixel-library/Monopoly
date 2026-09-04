@@ -78,6 +78,10 @@ export default function GamePage() {
   }, [turnNumber, currentPlayerIndex]);
 
   useEffect(() => {
+    if (!isMyTurn) {
+      setLandingTile(null);
+      return;
+    }
     if (!currentPlayer || !dice || !turnState.hasRolled) return;
     if (turnState.phase !== 'ACTION') return;
     if (landingTile) return;
@@ -95,7 +99,7 @@ export default function GamePage() {
       landingShownRef.current = true;
     }, 600);
     return () => clearTimeout(timer);
-  }, [dice, turnState.hasRolled, turnState.phase, currentPlayer?.position, landingTile, board, players]);
+  }, [isMyTurn, dice, turnState.hasRolled, turnState.phase, currentPlayer?.position, landingTile, board, players]);
 
   const handlePayJail = useCallback(() => {
     soundManager.play('cash');
@@ -196,7 +200,7 @@ export default function GamePage() {
       </header>
 
       {/* ── Incoming Trade Notification ── */}
-      {(trade && trade.status === 'pending' && trade.toPlayerId === currentPlayerId) && (
+      {(trade && trade.status === 'pending' && trade.toPlayerId === (roomCode ? myPlayerId : currentPlayerId)) && (
         <div className="bg-amber-50 border-b border-amber-200 px-4 py-2">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -399,7 +403,7 @@ export default function GamePage() {
       </AnimatePresence>
 
       <AnimatePresence>
-        {landingTile && currentPlayer && turnState.phase === 'ACTION' && turnState.hasRolled && (
+        {isMyTurn && landingTile && currentPlayer && turnState.phase === 'ACTION' && turnState.hasRolled && (
           <LandingModal
             tile={landingTile}
             player={currentPlayer}

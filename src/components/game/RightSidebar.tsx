@@ -38,7 +38,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ logs, roomCode, onCo
     <motion.aside
       initial={{ x: 50, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      className="w-64 flex-shrink-0 flex flex-col border-l border-gray-200 bg-white overflow-hidden"
+      className="w-72 flex-shrink-0 flex flex-col border-l border-gray-200 bg-white overflow-hidden"
     >
       {/* Players */}
       <div className="p-3 border-b border-gray-200">

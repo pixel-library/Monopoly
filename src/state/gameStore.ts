@@ -1407,6 +1407,12 @@ export const useGameStore = create<GameStore>()(
      const currentPlayer = state.players[state.currentPlayerIndex];
      if (!currentPlayer) return;
 
+     const activePlayers = state.players.filter(p => !p.bankrupt);
+     if (activePlayers.length < 3) {
+       get().addLog('Auction requires at least 3 active players', 'warning');
+       return;
+     }
+
      const activeBidders = state.players.filter(p => !p.bankrupt && p.id !== currentPlayer.id).map(p => p.id);
 
      set({

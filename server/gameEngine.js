@@ -635,8 +635,11 @@ export class GameEngine {
   }
 
   static startAuction(state, tileId, startedBy) {
+    const activePlayers = state.players.filter(p => !p.bankrupt);
+    if (activePlayers.length < 3) return false;
+
     const activeBidders = state.players.filter(p => !p.bankrupt && p.id !== startedBy).map(p => p.id);
-    if (activeBidders.length === 0) return;
+    if (activeBidders.length === 0) return false;
 
     state.auction = {
       id: generateId(),
@@ -652,6 +655,7 @@ export class GameEngine {
     };
     state.turnState.phase = 'AUCTION';
     GameEngine.addLog(state, `Auction started for ${BOARD_TILES[tileId]?.name || `tile ${tileId}`}!`, 'info');
+    return true;
   }
 
   static placeBid(state, playerId, bidAmount) {

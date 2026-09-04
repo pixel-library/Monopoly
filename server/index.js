@@ -216,7 +216,11 @@ io.on('connection', (socket) => {
     const ctx = authorizeOnlineAction(socket, roomCode, { action: 'START_AUCTION', requireCurrentTurn: true, requirePhase: 'PLAYING', requireAlive: true });
     if (!ctx) return;
     const { gameState, player } = ctx;
-    GameEngine.startAuction(gameState, tileId, player.id);
+    const success = GameEngine.startAuction(gameState, tileId, player.id);
+    if (!success) {
+      socket.emit('ACTION_REJECTED', { action: 'START_AUCTION', reason: 'AUCTION_UNAVAILABLE' });
+      return;
+    }
     io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
     BotAI.evaluateBotTurn(gameState, io, ctx.roomCode);
   });
@@ -252,14 +256,20 @@ io.on('connection', (socket) => {
     const senderOwnsOffered = offeredProperties.every(id => sender.properties.includes(id));
     const receiverOwnsRequested = requestedProperties.every(id => receiver.properties.includes(id));
     if (!senderOwnsOffered || !receiverOwnsRequested) return;
+    
+    const offeredMoney = tradeData.offeredMoney || 0;
+    const requestedMoney = tradeData.requestedMoney || 0;
+    
+    if (sender.money < offeredMoney) return;
+    if (receiver.money < requestedMoney) return;
 
       gameState.trade = {
         id: `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`,
         fromPlayerId: sender.id,
         toPlayerId: receiver.id,
-        offeredMoney: tradeData.offeredMoney || 0,
+        offeredMoney,
         offeredProperties,
-        requestedMoney: tradeData.requestedMoney || 0,
+        requestedMoney,
         requestedProperties,
         status: 'pending',
         createdAt: Date.now(),

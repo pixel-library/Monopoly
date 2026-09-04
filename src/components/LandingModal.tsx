@@ -29,6 +29,9 @@ export default function LandingModal({ tile, player, players, roomCode, onClose,
   const isOwned = !!owner;
   const isCurrentPlayerOwner = owner?.id === player.id;
   const canBuy = !isOwned && canAfford;
+  
+  const activePlayersCount = players.filter(p => !p.bankrupt).length;
+  const canAuction = activePlayersCount >= 3;
 
   const handleBuy = useCallback(() => {
     if (processing || isOwned) return;
@@ -183,7 +186,7 @@ export default function LandingModal({ tile, player, players, roomCode, onClose,
           {tile.price && !isOwned && (
             <div className="pt-2">
               {isMyTurn ? (
-                <div className="grid grid-cols-3 gap-2">
+                <div className={`grid ${canAuction ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
                   <button
                     onClick={handleBuy}
                     disabled={!canBuy || !!processing}
@@ -196,18 +199,20 @@ export default function LandingModal({ tile, player, players, roomCode, onClose,
                     )}
                     <span>{processing === 'buy' ? 'Buying...' : 'Buy'}</span>
                   </button>
-                  <button
-                    onClick={handleAuction}
-                    disabled={!!processing}
-                    className="col-span-1 flex flex-col items-center gap-1 py-3 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-xs transition-all active:scale-95 shadow-md disabled:opacity-50"
-                  >
-                    {processing === 'auction' ? (
-                      <Loader2 size={18} className="animate-spin" />
-                    ) : (
-                      <Gavel size={18} />
-                    )}
-                    <span>{processing === 'auction' ? 'Starting...' : 'Auction'}</span>
-                  </button>
+                  {canAuction && (
+                    <button
+                      onClick={handleAuction}
+                      disabled={!!processing}
+                      className="col-span-1 flex flex-col items-center gap-1 py-3 px-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl font-bold text-xs transition-all active:scale-95 shadow-md disabled:opacity-50"
+                    >
+                      {processing === 'auction' ? (
+                        <Loader2 size={18} className="animate-spin" />
+                      ) : (
+                        <Gavel size={18} />
+                      )}
+                      <span>{processing === 'auction' ? 'Starting...' : 'Auction'}</span>
+                    </button>
+                  )}
                   <button
                     onClick={handlePass}
                     disabled={!!processing}
