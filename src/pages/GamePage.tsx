@@ -50,7 +50,7 @@ export default function GamePage() {
     soundManager.play('dice');
     setRolling(true);
     if (roomCode) {
-      socketService.rollDice(roomCode, currentPlayer.id);
+      socketService.rollDice(roomCode);
     } else {
       rollDiceAction();
     }
@@ -99,7 +99,7 @@ export default function GamePage() {
   const handlePayJail = useCallback(() => {
     soundManager.play('cash');
     if (roomCode) {
-      socketService.payJail(roomCode, currentPlayer.id);
+      socketService.payJail(roomCode);
     } else {
       payJailFine(currentPlayer.id);
     }
@@ -108,7 +108,7 @@ export default function GamePage() {
   const handleUseJailCard = useCallback(() => {
     soundManager.play('card');
     if (roomCode && currentPlayer) {
-      socketService.useJailCard(roomCode, currentPlayer.id);
+      socketService.useJailCard(roomCode);
     } else if (currentPlayer) {
       useJailCard(currentPlayer.id);
     }
@@ -209,7 +209,7 @@ export default function GamePage() {
                 <>
                   <button
                     onClick={() => {
-                      socketService.tradeResponse(roomCode, currentPlayerId, true);
+                       socketService.tradeResponse(roomCode, true);
                     }}
                     className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition-colors"
                   >
@@ -217,7 +217,7 @@ export default function GamePage() {
                   </button>
                   <button
                     onClick={() => {
-                      socketService.tradeResponse(roomCode, currentPlayerId, false);
+                       socketService.tradeResponse(roomCode, false);
                     }}
                     className="px-3 py-1 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-xs font-bold transition-colors"
                   >
@@ -225,7 +225,7 @@ export default function GamePage() {
                   </button>
                   <button
                     onClick={() => {
-                      socketService.tradeResponse(roomCode, currentPlayerId, false);
+                       socketService.tradeResponse(roomCode, false);
                     }}
                     className="px-3 py-1 bg-slate-600 hover:bg-slate-700 text-white rounded-lg text-xs font-bold transition-colors"
                   >
@@ -371,7 +371,7 @@ export default function GamePage() {
             onPayFixed={() => {
               soundManager.play('cash');
               if (roomCode) {
-                socketService.payIncomeTax(roomCode, currentPlayer.id, true);
+                 socketService.payIncomeTax(roomCode, true);
               } else {
                 payIncomeTax(true);
               }
@@ -379,7 +379,7 @@ export default function GamePage() {
             onPayPercent={() => {
               soundManager.play('cash');
               if (roomCode) {
-                socketService.payIncomeTax(roomCode, currentPlayer.id, false);
+                 socketService.payIncomeTax(roomCode, false);
               } else {
                 payIncomeTax(false);
               }

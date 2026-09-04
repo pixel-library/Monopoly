@@ -45,6 +45,12 @@ io.on('connection', (socket) => {
       return null;
     }
 
+    const roomMembershipValid = Array.from(socket.rooms).some(r => r === upperCode);
+    if (!roomMembershipValid) {
+      socket.emit('ACTION_REJECTED', { action: options.action, reason: 'NOT_IN_ROOM' });
+      return null;
+    }
+
     if (options.requireCurrentTurn) {
       const currentPlayer = gameState.players[gameState.currentPlayerIndex];
       if (!currentPlayer || currentPlayer.id !== socketPlayerId) {
@@ -65,6 +71,13 @@ io.on('connection', (socket) => {
     }
 
     return { gameState, player, socketPlayerId, roomCode: upperCode };
+  };
+
+  const isHost = (socket, upperCode) => {
+    const gameState = roomManager.getRoom(upperCode);
+    const socketPlayerId = getSocketPlayerId(socket);
+    if (!gameState || !socketPlayerId) return false;
+    return gameState.players.some(p => p.id === socketPlayerId && p.isHost);
   };
 
   socket.on('CREATE_ROOM', ({ hostPlayer, settings }, callback) => {
@@ -100,6 +113,10 @@ io.on('connection', (socket) => {
 
   socket.on('ADD_BOT', ({ roomCode }) => {
     const upperCode = roomCode.toUpperCase();
+    if (!isHost(socket, upperCode)) {
+      socket.emit('ACTION_REJECTED', { action: 'ADD_BOT', reason: 'NOT_HOST' });
+      return;
+    }
     const gameState = roomManager.addBot(upperCode);
     if (gameState) {
       io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
@@ -109,19 +126,23 @@ io.on('connection', (socket) => {
   socket.on('TOGGLE_READY', ({ roomCode, playerId }) => {
     const upperCode = roomCode.toUpperCase();
     const gameState = roomManager.getRoom(upperCode);
-    if (gameState) {
-      const socketPlayerId = getSocketPlayerId(socket);
-      const targetId = playerId && gameState.players.some(p => p.id === playerId) ? playerId : socketPlayerId;
-      const player = gameState.players.find(p => p.id === targetId);
-      if (player) {
-        player.isReady = !player.isReady;
-        io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
-      }
+    if (!gameState) return;
+    const socketPlayerId = getSocketPlayerId(socket);
+    const targetId = playerId && gameState.players.some(p => p.id === playerId) ? playerId : socketPlayerId;
+    const player = gameState.players.find(p => p.id === targetId);
+    if (player) {
+      player.isReady = !player.isReady;
+      io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
     }
   });
 
   socket.on('START_GAME', ({ roomCode }, callback) => {
     const upperCode = roomCode.toUpperCase();
+    if (!isHost(socket, upperCode)) {
+      if (typeof callback === 'function') callback({ success: false, error: 'Only host can start the game' });
+      socket.emit('ACTION_REJECTED', { action: 'START_GAME', reason: 'NOT_HOST' });
+      return;
+    }
     const gameState = roomManager.getRoom(upperCode);
     if (gameState && gameState.players.length >= 2) {
       gameState.phase = 'PLAYING';
@@ -394,7 +415,7 @@ io.on('connection', (socket) => {
    });
  });
 
-const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
-  console.log(`[Estate Empire Server] Running on http://localhost:${PORT}`);
-});
+ const PORT = process.env.PORT || 3001;
+ server.listen(PORT, () => {
+   console.log(`[Estate Empire Server] Running on http://localhost:${PORT}`);
+ });

@@ -108,7 +108,7 @@ export default function TradeModal() {
                   if (processing) return;
                   setProcessing(true);
                   if (roomCode) {
-                    socketService.tradeResponse(roomCode, currentPlayer.id, true);
+                     socketService.tradeResponse(roomCode, true);
                   } else {
                     acceptTrade();
                   }
@@ -125,7 +125,7 @@ export default function TradeModal() {
                   if (processing) return;
                   setProcessing(true);
                   if (roomCode) {
-                    socketService.tradeResponse(roomCode, currentPlayer.id, false);
+                     socketService.tradeResponse(roomCode, false);
                   } else {
                     rejectTrade();
                   }

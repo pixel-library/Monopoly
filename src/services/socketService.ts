@@ -153,113 +153,113 @@ class SocketService {
     });
   }
 
-  rollDice(roomCode: string, playerId: string) {
+  rollDice(roomCode: string) {
     if (this.socket) {
-      this.socket.emit('ROLL_DICE', { roomCode, playerId });
+      this.socket.emit('ROLL_DICE', { roomCode });
     }
   }
 
-   buyProperty(roomCode: string, playerId: string, tileId: number) {
+   buyProperty(roomCode: string, tileId: number) {
     if (this.socket) {
-      this.socket.emit('BUY_PROPERTY', { roomCode, playerId, tileId });
+      this.socket.emit('BUY_PROPERTY', { roomCode, tileId });
     }
   }
 
-  buyHouse(roomCode: string, playerId: string, tileId: number) {
+   buyHouse(roomCode: string, tileId: number) {
     if (this.socket) {
-      this.socket.emit('BUY_HOUSE', { roomCode, playerId, tileId });
+      this.socket.emit('BUY_HOUSE', { roomCode, tileId });
     }
   }
 
-  buyHotel(roomCode: string, playerId: string, tileId: number) {
+   buyHotel(roomCode: string, tileId: number) {
     if (this.socket) {
-      this.socket.emit('BUY_HOTEL', { roomCode, playerId, tileId });
+      this.socket.emit('BUY_HOTEL', { roomCode, tileId });
     }
   }
 
-  declineProperty(roomCode: string, playerId: string, tileId: number) {
+   declineProperty(roomCode: string, tileId: number) {
     if (this.socket) {
-      this.socket.emit('DECLINE_PROPERTY', { roomCode, playerId, tileId });
+      this.socket.emit('DECLINE_PROPERTY', { roomCode, tileId });
     }
   }
 
-  startAuction(roomCode: string, playerId: string, tileId: number) {
+   startAuction(roomCode: string, tileId: number) {
     if (this.socket) {
-      this.socket.emit('START_AUCTION', { roomCode, playerId, tileId });
+      this.socket.emit('START_AUCTION', { roomCode, tileId });
     }
   }
 
-  placeBid(roomCode: string, playerId: string, bidAmount: number) {
+   placeBid(roomCode: string, bidAmount: number) {
     if (this.socket) {
-      this.socket.emit('PLACE_BID', { roomCode, playerId, bidAmount });
+      this.socket.emit('PLACE_BID', { roomCode, bidAmount });
     }
   }
 
-  passBid(roomCode: string, playerId: string) {
+   passBid(roomCode: string) {
     if (this.socket) {
-      this.socket.emit('PASS_BID', { roomCode, playerId });
+      this.socket.emit('PASS_BID', { roomCode });
     }
   }
 
-  payJail(roomCode: string, playerId: string) {
+   payJail(roomCode: string) {
     if (this.socket) {
-      this.socket.emit('PAY_JAIL', { roomCode, playerId });
+      this.socket.emit('PAY_JAIL', { roomCode });
     }
   }
 
-  useJailCard(roomCode: string, playerId: string) {
+   useJailCard(roomCode: string) {
     if (this.socket) {
-      this.socket.emit('USE_JAIL_CARD', { roomCode, playerId });
+      this.socket.emit('USE_JAIL_CARD', { roomCode });
     }
   }
 
-  payIncomeTax(roomCode: string, playerId: string, fixed: boolean) {
+   payIncomeTax(roomCode: string, fixed: boolean) {
     if (this.socket) {
-      this.socket.emit('PAY_INCOME_TAX', { roomCode, playerId, fixed });
+      this.socket.emit('PAY_INCOME_TAX', { roomCode, fixed });
     }
   }
 
-  endTurn(roomCode: string) {
+   endTurn(roomCode: string) {
     if (this.socket) {
       this.socket.emit('END_TURN', { roomCode });
     }
   }
 
-   proposeTrade(roomCode: string, tradeData: any) {
-    if (this.socket) {
-      this.socket.emit('PROPOSE_TRADE', { roomCode, tradeData });
-    }
-  }
+    proposeTrade(roomCode: string, tradeData: any) {
+     if (this.socket) {
+       this.socket.emit('PROPOSE_TRADE', { roomCode, tradeData });
+     }
+   }
 
-  tradeResponse(roomCode: string, playerId: string, accepted: boolean) {
-    if (this.socket) {
-      this.socket.emit('TRADE_RESPONSE', { roomCode, playerId, accepted });
-    }
-  }
+   tradeResponse(roomCode: string, accepted: boolean) {
+     if (this.socket) {
+       this.socket.emit('TRADE_RESPONSE', { roomCode, accepted });
+     }
+   }
 
-  mortgageProperty(roomCode: string, playerId: string, tileId: number) {
-    if (this.socket) {
-      this.socket.emit('MORTGAGE_PROPERTY', { roomCode, playerId, tileId });
-    }
-  }
+   mortgageProperty(roomCode: string, tileId: number) {
+     if (this.socket) {
+       this.socket.emit('MORTGAGE_PROPERTY', { roomCode, tileId });
+     }
+   }
 
-  unmortgageProperty(roomCode: string, playerId: string, tileId: number) {
-    if (this.socket) {
-      this.socket.emit('UNMORTGAGE_PROPERTY', { roomCode, playerId, tileId });
-    }
-  }
+   unmortgageProperty(roomCode: string, tileId: number) {
+     if (this.socket) {
+       this.socket.emit('UNMORTGAGE_PROPERTY', { roomCode, tileId });
+     }
+   }
 
-  sellHouses(roomCode: string, playerId: string, tileId: number) {
-    if (this.socket) {
-      this.socket.emit('SELL_HOUSES', { roomCode, playerId, tileId });
-    }
-  }
+   sellHouses(roomCode: string, tileId: number) {
+     if (this.socket) {
+       this.socket.emit('SELL_HOUSES', { roomCode, tileId });
+     }
+   }
 
-  resolveDebt(roomCode: string, playerId: string, action: string, tileId?: number) {
-    if (this.socket) {
-      this.socket.emit('RESOLVE_DEBT', { roomCode, playerId, action, tileId });
-    }
-  }
+   resolveDebt(roomCode: string, action: string, tileId?: number) {
+     if (this.socket) {
+       this.socket.emit('RESOLVE_DEBT', { roomCode, action, tileId });
+     }
+   }
 
   declareBankruptcy(roomCode: string, playerId: string) {
     if (this.socket) {

@@ -43,7 +43,7 @@ export default function PropertyDrawer({ tile, players, onClose, onTrade, onBuil
 
   const handleBuyHouse = () => {
     if (roomCode) {
-      socketService.buyHouse(roomCode, currentPlayer.id, tile.id);
+      socketService.buyHouse(roomCode, tile.id);
     } else {
       buyHouse(currentPlayer.id, tile.id);
     }
@@ -51,7 +51,7 @@ export default function PropertyDrawer({ tile, players, onClose, onTrade, onBuil
 
   const handleBuyHotel = () => {
     if (roomCode) {
-      socketService.buyHotel(roomCode, currentPlayer.id, tile.id);
+      socketService.buyHotel(roomCode, tile.id);
     } else {
       buyHotel(currentPlayer.id, tile.id);
     }
@@ -59,7 +59,7 @@ export default function PropertyDrawer({ tile, players, onClose, onTrade, onBuil
 
   const handleMortgage = () => {
     if (roomCode) {
-      socketService.mortgageProperty(roomCode, currentPlayer.id, tile.id);
+      socketService.mortgageProperty(roomCode, tile.id);
     } else {
       mortgageProperty(currentPlayer.id, tile.id);
     }
@@ -67,7 +67,7 @@ export default function PropertyDrawer({ tile, players, onClose, onTrade, onBuil
 
   const handleUnmortgage = () => {
     if (roomCode) {
-      socketService.unmortgageProperty(roomCode, currentPlayer.id, tile.id);
+      socketService.unmortgageProperty(roomCode, tile.id);
     } else {
       unmortgageProperty(currentPlayer.id, tile.id);
     }
@@ -75,7 +75,7 @@ export default function PropertyDrawer({ tile, players, onClose, onTrade, onBuil
 
   const handleSellHouse = () => {
     if (roomCode) {
-      socketService.sellHouses(roomCode, currentPlayer.id, tile.id);
+      socketService.sellHouses(roomCode, tile.id);
     } else {
       sellHouses(currentPlayer.id, tile.id);
     }

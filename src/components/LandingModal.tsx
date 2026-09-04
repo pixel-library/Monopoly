@@ -36,7 +36,7 @@ export default function LandingModal({ tile, player, players, roomCode, onClose,
 
     const executeBuy = () => {
       if (roomCode) {
-        socketService.buyProperty(roomCode, player.id, tile.id);
+        socketService.buyProperty(roomCode, tile.id);
       } else {
         useGameStore.getState().buyProperty(player.id, tile.id);
       }
@@ -54,7 +54,7 @@ export default function LandingModal({ tile, player, players, roomCode, onClose,
 
     const executeAuction = () => {
       if (roomCode) {
-        socketService.startAuction(roomCode, player.id, tile.id);
+        socketService.startAuction(roomCode, tile.id);
       } else {
         useGameStore.getState().startAuction(tile.id);
       }
@@ -72,7 +72,7 @@ export default function LandingModal({ tile, player, players, roomCode, onClose,
 
     const executePass = () => {
       if (roomCode) {
-        socketService.declineProperty(roomCode, player.id, tile.id);
+        socketService.declineProperty(roomCode, tile.id);
       } else {
         declinePropertyPurchase(player.id, tile.id);
       }

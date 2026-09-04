@@ -26,7 +26,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({ roomCode, onOpenTrade, onO
   const handleRoll = () => {
     soundManager.play('dice');
     if (roomCode) {
-      socketService.rollDice(roomCode, currentPlayer.id);
+      socketService.rollDice(roomCode);
     } else {
       rollDiceAction();
     }
@@ -35,7 +35,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({ roomCode, onOpenTrade, onO
   const handleBuy = () => {
     soundManager.play('cash');
     if (roomCode && currentTile) {
-      socketService.buyProperty(roomCode, currentPlayer.id, currentTile.id);
+      socketService.buyProperty(roomCode, currentTile.id);
     } else if (currentTile) {
       buyProperty(currentPlayer.id, currentTile.id);
     }
@@ -44,7 +44,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({ roomCode, onOpenTrade, onO
   const handleDecline = () => {
     soundManager.play('click');
     if (roomCode && currentTile) {
-      socketService.declineProperty(roomCode, currentPlayer.id, currentTile.id);
+      socketService.declineProperty(roomCode, currentTile.id);
     } else if (currentTile) {
       declinePropertyPurchase(currentPlayer.id, currentTile.id);
     }
@@ -53,16 +53,16 @@ export const ActionBar: React.FC<ActionBarProps> = ({ roomCode, onOpenTrade, onO
   const handleEndTurn = () => {
     soundManager.play('click');
     if (roomCode) {
-      socketService.endTurn(roomCode);
+      socketService.resolveDebt(roomCode, 'pay');
     } else {
-      endTurn();
+      payDebt();
     }
   };
 
   const handlePayDebt = () => {
     soundManager.play('cash');
     if (roomCode) {
-      socketService.resolveDebt(roomCode, currentPlayer.id, 'pay');
+      socketService.resolveDebt(roomCode, 'pay');
     } else {
       payDebt();
     }

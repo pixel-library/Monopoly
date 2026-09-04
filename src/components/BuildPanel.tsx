@@ -21,7 +21,7 @@ export default function BuildPanel({ currentPlayer, board, onClose }: BuildPanel
 
   const handleBuyHouse = (tileId: number) => {
     if (roomCode) {
-      socketService.buyHouse(roomCode, currentPlayer.id, tileId);
+      socketService.buyHouse(roomCode, tileId);
     } else {
       buyHouse(currentPlayer.id, tileId);
     }
@@ -29,7 +29,7 @@ export default function BuildPanel({ currentPlayer, board, onClose }: BuildPanel
 
    const handleBuyHotel = (tileId: number) => {
     if (roomCode) {
-      socketService.buyHotel(roomCode, currentPlayer.id, tileId);
+      socketService.buyHotel(roomCode, tileId);
     } else {
       buyHotel(currentPlayer.id, tileId);
     }
@@ -37,7 +37,7 @@ export default function BuildPanel({ currentPlayer, board, onClose }: BuildPanel
 
   const handleSellHouse = (tileId: number) => {
     if (roomCode) {
-      socketService.sellHouses(roomCode, currentPlayer.id, tileId);
+      socketService.sellHouses(roomCode, tileId);
     } else {
       sellHouses(currentPlayer.id, tileId);
     }

@@ -58,7 +58,7 @@ export default function AuctionModal({ roomCode }: AuctionModalProps) {
     soundManager.play('cash');
     const amount = Math.max(auction.currentBid + 10, getBidAmount(player));
     if (roomCode) {
-      socketService.placeBid(roomCode, player.id, amount);
+      socketService.placeBid(roomCode, amount);
     } else {
       useGameStore.getState().placeBid(player.id, amount);
     }
@@ -69,7 +69,7 @@ export default function AuctionModal({ roomCode }: AuctionModalProps) {
     if (!auction || auction.startedBy === player.id) return;
     soundManager.play('click');
     if (roomCode) {
-      socketService.passBid(roomCode, player.id);
+      socketService.passBid(roomCode);
     } else {
       useGameStore.getState().passBid(player.id);
     }
