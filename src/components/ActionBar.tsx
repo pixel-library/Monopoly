@@ -93,7 +93,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({ roomCode, onOpenTrade, onO
       )}
 
       {/* CAN ROLL AGAIN (doubles) */}
-      {!turnState.hasRolled && turnState.canRollAgain && currentPlayer && !currentPlayer.inJail && (
+      {turnState.canRollAgain && currentPlayer && !currentPlayer.inJail && (
         <button
           onClick={handleRoll}
           className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold px-6 py-2.5 rounded-xl shadow-lg flex items-center gap-2 transition-all transform hover:scale-105 active:scale-95"

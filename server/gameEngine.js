@@ -448,6 +448,9 @@ export class GameEngine {
       }
     } else {
       GameEngine.movePlayer(state, player.id, dice.total);
+      if (dice.isDouble) {
+        state.turnState.canRollAgain = true;
+      }
     }
     return true;
   }

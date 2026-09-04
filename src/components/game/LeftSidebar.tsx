@@ -23,7 +23,7 @@ export const LeftSidebar: React.FC<LeftSidebarProps> = ({
     <motion.aside
       initial={{ x: -50, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      className="w-52 flex-shrink-0 flex flex-col border-r border-gray-200 bg-white overflow-hidden"
+      className="w-52 lg:w-52 w-full flex-shrink-0 flex flex-col border-r border-gray-200 bg-white overflow-hidden"
     >
       {/* Players section - takes about 40% */}
       <div className="p-2 border-b border-gray-200 overflow-y-auto">

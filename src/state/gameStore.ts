@@ -319,7 +319,7 @@ export const useGameStore = create<GameStore>()(
 
   rollDiceAction: () => {
     const state = get();
-    if (state.turnState.hasRolled) return;
+    if (state.turnState.hasRolled && !state.turnState.canRollAgain) return;
 
     const currentPlayer = state.players[state.currentPlayerIndex];
     if (!currentPlayer || currentPlayer.bankrupt) return;
@@ -332,6 +332,7 @@ export const useGameStore = create<GameStore>()(
         ...state.turnState,
         hasRolled: true,
         doublesRolled: dice.isDouble ? state.turnState.doublesRolled + 1 : 0,
+        canRollAgain: dice.isDouble && (state.turnState.doublesRolled + 1) < state.settings.maxDoublesBeforeJail,
       },
     });
 

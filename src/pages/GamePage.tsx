@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { LogOut, Lock, Copy, Check } from 'lucide-react';
+import { LogOut, Lock, Copy, Check, Users } from 'lucide-react';
 import { useGameStore } from '../state/gameStore';
 import { socketService } from '../services/socketService';
 import { soundManager } from '../game/soundManager';
@@ -35,6 +35,7 @@ export default function GamePage() {
   const [activeTab, setActiveTab] = useState<'trade' | 'store' | 'settings' | 'effects'>('trade');
   const [rolling, setRolling] = useState(false);
   const [landingTile, setLandingTile] = useState<BoardTile | null>(null);
+  const [showMobileSidebar, setShowMobileSidebar] = useState(false);
   const landingShownRef = React.useRef(false);
 
   const currentPlayer = players[currentPlayerIndex];
@@ -179,6 +180,13 @@ export default function GamePage() {
               ))}
             </div>
           )}
+          <button
+            onClick={() => setShowMobileSidebar(!showMobileSidebar)}
+            className="lg:hidden flex items-center gap-1 text-xs text-gray-500 hover:text-amber-600 transition-colors"
+            title="Players & Chat"
+          >
+            <Users size={12} />
+          </button>
           <button onClick={handleLeave} className="flex items-center gap-1 text-xs text-gray-500 hover:text-red-600 transition-colors">
             <LogOut size={12} />
             <span>Leave</span>
@@ -277,14 +285,24 @@ export default function GamePage() {
 
       {/* ── Main Content ── */}
       <div className="flex-1 flex overflow-hidden min-h-0">
+        {/* Mobile sidebar overlay */}
+        {showMobileSidebar && (
+          <div
+            className="fixed inset-0 bg-black/50 z-30 lg:hidden"
+            onClick={() => setShowMobileSidebar(false)}
+          />
+        )}
+
         {/* ── Left Sidebar ── */}
-        <LeftSidebar
-          players={players}
-          currentPlayerIndex={currentPlayerIndex}
-          board={board}
-          chatMessages={chatMessages}
-          currentPlayerId={currentPlayerId}
-        />
+        <div className={`${showMobileSidebar ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 fixed lg:relative inset-y-0 left-0 z-40 lg:z-auto transition-transform duration-200`}>
+          <LeftSidebar
+            players={players}
+            currentPlayerIndex={currentPlayerIndex}
+            board={board}
+            chatMessages={chatMessages}
+            currentPlayerId={currentPlayerId}
+          />
+        </div>
 
         {/* ── Center: Board ── */}
         <main className="flex-1 flex flex-col items-center justify-center overflow-auto p-2 relative min-h-0">
@@ -310,10 +328,12 @@ export default function GamePage() {
         </main>
 
         {/* ── Right Sidebar ── */}
-        <RightSidebar
-          logs={logs}
-          roomCode={roomCode}
-        />
+        <div className="hidden lg:block flex-shrink-0">
+          <RightSidebar
+            logs={logs}
+            roomCode={roomCode}
+          />
+        </div>
       </div>
 
       {/* ── Modals ── */}

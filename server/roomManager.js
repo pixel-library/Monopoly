@@ -9,7 +9,12 @@ class RoomManager {
   }
 
   createRoom(hostPlayer, settings = {}) {
-    const roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    let roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    let attempts = 0;
+    while (this.rooms.has(roomCode) && attempts < 10) {
+      roomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      attempts++;
+    }
     const gameState = GameEngine.createInitialGameState(roomCode, settings);
 
     hostPlayer.isHost = true;

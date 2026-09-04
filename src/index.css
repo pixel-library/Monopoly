@@ -439,3 +439,92 @@
   .text-board-cream { color: var(--color-text-primary); }
   .bg-board-dark { background: var(--color-surface-0); }
   .bg-board-green { background: #f0f0f0; }
+
+  /* ─── Mobile layout ─── */
+  @media (max-width: 767px) {
+    .monopoly-board-container {
+      width: 100%;
+      padding: 8px;
+    }
+
+    .monopoly-board {
+      width: 100%;
+      max-width: 100%;
+      border-width: 3px;
+    }
+
+    .btn-lg {
+      padding: 10px 16px;
+      font-size: 14px;
+    }
+
+    .btn-xl {
+      padding: 12px  20px;
+      font-size: 15px;
+    }
+
+    .panel {
+      border-radius: 8px;
+    }
+
+    .panel-raised {
+      border-radius: 8px;
+    }
+  }
+
+  @media (max-width: 430px) {
+    .monopoly-board {
+      border-width: 2px;
+    }
+
+    .cell-content {
+      padding: 1px;
+    }
+
+    .country-flag-badge {
+      width: 32%;
+    }
+
+    .country-flag-emoji {
+      font-size: 10px;
+    }
+  }
+
+  /* ─── Game page mobile layout ─── */
+  @media (max-width: 767px) {
+    .game-layout {
+      flex-direction: column;
+    }
+
+    .game-sidebar {
+      width: 100%;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .game-main {
+      flex: 1;
+      min-height: 0;
+    }
+
+    .modal-content {
+      max-width: 100%;
+      max-height: 90vh;
+      margin: 8px;
+    }
+
+    .auction-panel-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 430px) {
+    .game-sidebar {
+      max-height: 150px;
+    }
+
+    .modal-content {
+      max-height: 95vh;
+      margin: 4px;
+    }
+  }
