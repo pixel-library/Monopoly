@@ -306,6 +306,7 @@ export default function GamePage() {
             board={board}
             chatMessages={chatMessages}
             currentPlayerId={currentPlayerId}
+            roomCode={roomCode}
           />
         </div>
 

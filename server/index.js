@@ -406,6 +406,33 @@ io.on('connection', (socket) => {
     }
   });
 
+  socket.on('SEND_CHAT', ({ message }) => {
+    const roomCode = getSocketRoomCode(socket);
+    const playerId = getSocketPlayerId(socket);
+    if (!roomCode || !playerId || !message || typeof message !== 'string') return;
+
+    const trimmed = message.trim().slice(0, 300);
+    if (!trimmed) return;
+
+    const gameState = roomManager.getRoom(roomCode);
+    if (!gameState) return;
+
+    const player = gameState.players.find(p => p.id === playerId);
+    if (!player) return;
+
+    const chatMessage = {
+      id: `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`,
+      playerName: player.name,
+      playerId: player.id,
+      tokenId: player.tokenId,
+      message: trimmed,
+      timestamp: Date.now(),
+    };
+
+    // Broadcast to all players in this room (including sender for confirmation)
+    io.to(roomCode).emit('CHAT_MESSAGE', chatMessage);
+  });
+
     socket.on('disconnect', () => {
      const session = roomManager.socketToPlayer.get(socket.id);
      if (session) {

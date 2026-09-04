@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChatMessage } from '../../types';
 import { Send, Smile, Mic } from 'lucide-react';
 import { useGameStore } from '../../state/gameStore';
+import { socketService } from '../../services/socketService';
 
 const PLAYER_COLOR_MAP: Record<string, string> = {
   'token-red': '#e74c3c',
@@ -16,6 +17,7 @@ const PLAYER_COLOR_MAP: Record<string, string> = {
 interface ChatPanelProps {
   messages: ChatMessage[];
   currentPlayerId: string;
+  roomCode?: string | null;
 }
 
 const MOCK_MESSAGES: ChatMessage[] = [
@@ -45,11 +47,12 @@ const MOCK_MESSAGES: ChatMessage[] = [
   },
 ];
 
-export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, currentPlayerId }) => {
+export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, currentPlayerId, roomCode }) => {
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const addChatMessage = useGameStore((state) => state.addChatMessage);
+  const isOnline = !!roomCode;
 
   const displayMessages = messages.length > 0 ? messages : MOCK_MESSAGES;
 
@@ -71,7 +74,13 @@ export const ChatPanel: React.FC<ChatPanelProps> = ({ messages, currentPlayerId 
   const handleSend = () => {
     const trimmed = inputValue.trim();
     if (!trimmed) return;
-    addChatMessage(trimmed, currentPlayerId);
+    if (isOnline) {
+      // In online mode: emit to server; server broadcasts back to all clients in the room.
+      // Do NOT write to local store here — the server echo will do it via receiveChatMessage.
+      socketService.sendChat(trimmed);
+    } else {
+      addChatMessage(trimmed, currentPlayerId);
+    }
     setInputValue('');
   };
 

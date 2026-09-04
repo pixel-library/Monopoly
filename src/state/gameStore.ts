@@ -36,6 +36,7 @@ const DEFAULT_SETTINGS: GameSettings = {
 interface GameStore extends GameState {
    chatMessages: ChatMessage[];
    addChatMessage: (message: string, playerId: string) => void;
+   receiveChatMessage: (msg: ChatMessage & { tokenId?: string }) => void;
    isStoreOpen: boolean;
    setStoreOpen: (open: boolean) => void;
   isTradeModalOpen: boolean;
@@ -1655,17 +1656,33 @@ export const useGameStore = create<GameStore>()(
   },
 
   addChatMessage: (message, playerId) => {
-    const player = get().players.find(p => p.id === playerId);
+    const state = get();
+    const player = state.players.find(p => p.id === playerId);
     const newMessage: ChatMessage = {
       id: generateId(),
       playerName: player?.name || 'Unknown',
       playerId,
       message,
       timestamp: Date.now(),
-      isOwnMessage: playerId === 'you',
+      isOwnMessage: playerId === state.myPlayerId,
     };
-    set((state) => ({
-      chatMessages: [newMessage, ...state.chatMessages],
+    set((s) => ({
+      chatMessages: [newMessage, ...s.chatMessages],
+    }));
+  },
+
+  receiveChatMessage: (msg) => {
+    const myPlayerId = get().myPlayerId;
+    const message: ChatMessage = {
+      id: msg.id,
+      playerName: msg.playerName,
+      playerId: msg.playerId,
+      message: msg.message,
+      timestamp: msg.timestamp,
+      isOwnMessage: msg.playerId === myPlayerId,
+    };
+    set((s) => ({
+      chatMessages: [message, ...s.chatMessages],
     }));
   },
   }),

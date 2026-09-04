@@ -77,6 +77,11 @@ class SocketService {
           });
         }
       });
+
+      this.socket.on('CHAT_MESSAGE', (msg: any) => {
+        if (!msg || !msg.id || !msg.message) return;
+        useGameStore.getState().receiveChatMessage(msg);
+      });
     }
     return this.socket;
   }
@@ -240,6 +245,12 @@ class SocketService {
    counterTrade(roomCode: string, tradeId: string, counterOffer: { offeredMoney: number; offeredPropertyIds: number[]; requestedMoney: number; requestedPropertyIds: number[] }) {
      if (this.socket) {
        this.socket.emit('COUNTER_TRADE', { roomCode, tradeId, counterOffer });
+     }
+   }
+
+   sendChat(message: string) {
+     if (this.socket) {
+       this.socket.emit('SEND_CHAT', { message });
      }
    }
 
