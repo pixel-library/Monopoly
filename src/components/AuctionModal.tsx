@@ -10,9 +10,10 @@ import { X, TrendingUp, UserPlus, Users, Clock } from 'lucide-react';
 
 interface AuctionModalProps {
   roomCode?: string | null;
+  myPlayerId?: string | null;
 }
 
-export default function AuctionModal({ roomCode }: AuctionModalProps) {
+export default function AuctionModal({ roomCode, myPlayerId }: AuctionModalProps) {
   const { auction, players, currentPlayerIndex } = useGameStore();
   const [bidAmounts, setBidAmounts] = useState<Record<string, number>>({});
   const [timeLeft, setTimeLeft] = useState<number>(30);
@@ -20,6 +21,9 @@ export default function AuctionModal({ roomCode }: AuctionModalProps) {
   const isHotseat = !roomCode;
   const auctionTile = auction ? BOARD_TILES.find(t => t.id === auction.tileId) : null;
   const country = auctionTile?.country ? getCountryById(auctionTile.country) : null;
+
+  const localPlayerId = isHotseat ? players[currentPlayerIndex]?.id : myPlayerId;
+  const localPlayer = players.find(p => p.id === localPlayerId);
 
   useEffect(() => {
     if (!auction || auction.status !== 'active') return;
@@ -278,7 +282,7 @@ export default function AuctionModal({ roomCode }: AuctionModalProps) {
             </div>
           ) : (
             <div className="max-w-md mx-auto">
-              {currentPlayerIndex >= 0 && currentPlayerIndex < players.length && renderPlayerPanel(players[currentPlayerIndex])}
+              {localPlayer && renderPlayerPanel(localPlayer)}
             </div>
           )}
         </div>

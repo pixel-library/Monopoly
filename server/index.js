@@ -253,17 +253,18 @@ io.on('connection', (socket) => {
     const receiverOwnsRequested = requestedProperties.every(id => receiver.properties.includes(id));
     if (!senderOwnsOffered || !receiverOwnsRequested) return;
 
-     gameState.trade = {
-       id: `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`,
-       fromPlayerId: sender.id,
-       toPlayerId: receiver.id,
-       offeredMoney: tradeData.offeredMoney || 0,
-       offeredProperties,
-       requestedMoney: tradeData.requestedMoney || 0,
-       requestedProperties,
-       status: 'pending',
-       createdAt: Date.now(),
-     };
+      gameState.trade = {
+        id: `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`,
+        fromPlayerId: sender.id,
+        toPlayerId: receiver.id,
+        offeredMoney: tradeData.offeredMoney || 0,
+        offeredProperties,
+        requestedMoney: tradeData.requestedMoney || 0,
+        requestedProperties,
+        status: 'pending',
+        createdAt: Date.now(),
+        revision: 1,
+      };
     GameEngine.addLog(gameState, `${sender.name} proposed a trade deal to ${receiver.name}!`, 'action');
     io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
   });
@@ -331,6 +332,19 @@ io.on('connection', (socket) => {
         BotAI.evaluateBotTurn(gameState, io, ctx.roomCode);
       }
       io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
+    }
+  });
+
+    socket.on('COUNTER_TRADE', ({ roomCode, tradeId, counterOffer }) => {
+    const ctx = authorizeOnlineAction(socket, roomCode, { action: 'COUNTER_TRADE', requirePhase: 'PLAYING', requireAlive: true });
+    if (!ctx) return;
+    const { gameState, player } = ctx;
+    if (gameState.trade && gameState.trade.status === 'pending' && gameState.trade.toPlayerId === player.id && gameState.trade.id === tradeId) {
+      const success = GameEngine.counterTrade(gameState, tradeId, counterOffer);
+      if (success) {
+        io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
+        BotAI.evaluateBotTurn(gameState, io, ctx.roomCode);
+      }
     }
   });
 

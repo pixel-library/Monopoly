@@ -5,7 +5,7 @@ import { LogOut, Lock, Copy, Check, Users } from 'lucide-react';
 import { useGameStore } from '../state/gameStore';
 import { socketService } from '../services/socketService';
 import { soundManager } from '../game/soundManager';
-import { BoardTile } from '../types';
+import { BoardTile, TradeOffer } from '../types';
 import MonopolyBoard from '../components/monopoly/MonopolyBoard';
 import LeftSidebar from '../components/game/LeftSidebar';
 import RightSidebar from '../components/game/RightSidebar';
@@ -36,6 +36,7 @@ export default function GamePage() {
   const [rolling, setRolling] = useState(false);
   const [landingTile, setLandingTile] = useState<BoardTile | null>(null);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
+  const [counterTrade, setCounterTrade] = useState<TradeOffer | null>(null);
   const landingShownRef = React.useRef(false);
 
   const currentPlayer = players[currentPlayerIndex];
@@ -334,6 +335,7 @@ export default function GamePage() {
           <RightSidebar
             logs={logs}
             roomCode={roomCode}
+            onCounterTrade={setCounterTrade}
           />
         </div>
       </div>
@@ -356,7 +358,13 @@ export default function GamePage() {
 
       <AnimatePresence>
         {isTradeModalOpen && (
-          <TradeDrawer onClose={() => setTradeModalOpen(false)} />
+          <TradeDrawer 
+            onClose={() => {
+              setTradeModalOpen(false);
+              setCounterTrade(null);
+            }} 
+            counterTrade={counterTrade}
+          />
         )}
       </AnimatePresence>
 
@@ -431,7 +439,7 @@ export default function GamePage() {
 
       <AnimatePresence>
         {auction && (auction.status === 'active' || auction.status === 'completed') && (
-          <AuctionModal roomCode={roomCode} />
+          <AuctionModal roomCode={roomCode} myPlayerId={myPlayerId} />
         )}
       </AnimatePresence>
     </div>

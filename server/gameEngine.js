@@ -812,6 +812,44 @@ export class GameEngine {
     return true;
   }
 
+  static counterTrade(state, tradeId, counterOffer) {
+    const trade = state.trade;
+    if (!trade || trade.status !== 'pending') return false;
+
+    const currentRecipient = state.players.find(p => p.id === trade.toPlayerId);
+    const newSender = state.players.find(p => p.id === trade.fromPlayerId);
+    if (!currentRecipient || !newSender) return false;
+
+    const offeredProperties = counterOffer.offeredPropertyIds || [];
+    const requestedProperties = counterOffer.requestedPropertyIds || [];
+    const offeredMoney = counterOffer.offeredMoney || 0;
+    const requestedMoney = counterOffer.requestedMoney || 0;
+
+    const recipientOwnsOffered = offeredProperties.every(id => currentRecipient.properties.includes(id));
+    const senderOwnsRequested = requestedProperties.every(id => newSender.properties.includes(id));
+    if (!recipientOwnsOffered || !senderOwnsRequested) return false;
+
+    if (currentRecipient.money < offeredMoney) return false;
+    if (newSender.money < requestedMoney) return false;
+
+    state.trade = {
+      id: `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`,
+      fromPlayerId: currentRecipient.id,
+      toPlayerId: newSender.id,
+      offeredProperties,
+      requestedProperties,
+      offeredMoney,
+      requestedMoney,
+      status: 'pending',
+      createdAt: Date.now(),
+      revision: (trade.revision || 1) + 1,
+      previousTradeId: trade.id,
+    };
+
+    GameEngine.addLog(state, `${currentRecipient.name} sent a counter-offer to ${newSender.name}`, 'action', currentRecipient.id);
+    return true;
+  }
+
   static endTurn(state) {
     let nextIndex = (state.currentPlayerIndex + 1) % state.players.length;
     let count = 0;

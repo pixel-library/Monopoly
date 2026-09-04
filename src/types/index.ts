@@ -129,6 +129,8 @@ export interface TradeOffer {
   requestedMoney: number;
   status: 'pending' | 'accepted' | 'rejected' | 'cancelled' | 'expired';
   createdAt: number;
+  revision: number;
+  previousTradeId?: string | null;
 }
 
 export interface AuctionState {

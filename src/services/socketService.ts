@@ -237,6 +237,12 @@ class SocketService {
      }
    }
 
+   counterTrade(roomCode: string, tradeId: string, counterOffer: { offeredMoney: number; offeredPropertyIds: number[]; requestedMoney: number; requestedPropertyIds: number[] }) {
+     if (this.socket) {
+       this.socket.emit('COUNTER_TRADE', { roomCode, tradeId, counterOffer });
+     }
+   }
+
    mortgageProperty(roomCode: string, tileId: number) {
      if (this.socket) {
        this.socket.emit('MORTGAGE_PROPERTY', { roomCode, tileId });

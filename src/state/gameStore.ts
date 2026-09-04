@@ -79,6 +79,7 @@ interface GameStore extends GameState {
   rejectTrade: () => void;
   waitTrade: () => void;
   cancelTrade: () => void;
+  counterTrade: (tradeId: string, counterOffer: { offeredMoney: number; offeredPropertyIds: number[]; requestedMoney: number; requestedPropertyIds: number[] }) => void;
   startAuction: (tileId: number) => void;
   placeBid: (playerId: string, bidAmount: number) => boolean;
   passBid: (playerId: string) => boolean;
@@ -1341,6 +1342,62 @@ export const useGameStore = create<GameStore>()(
       get().addLog('Trade cancelled', 'info');
       set({ trade: null, tradeNotifications: state.tradeNotifications.filter(n => n.tradeId !== trade.id) });
     }
+  },
+
+  counterTrade: (tradeId, counterOffer) => {
+    const state = get();
+    const trade = state.trade;
+    if (!trade || trade.status !== 'pending' || trade.id !== tradeId) return;
+
+    if (state.roomCode === null) {
+      const currentPlayer = state.players[state.currentPlayerIndex];
+      if (trade.toPlayerId !== currentPlayer?.id) {
+        get().addLog('Only the current recipient can counter a trade', 'error');
+        return;
+      }
+    }
+
+    const currentRecipient = state.players.find(p => p.id === trade.toPlayerId);
+    const newSender = state.players.find(p => p.id === trade.fromPlayerId);
+    if (!currentRecipient || !newSender) return;
+
+    const offeredProperties = counterOffer.offeredPropertyIds || [];
+    const requestedProperties = counterOffer.requestedPropertyIds || [];
+    const offeredMoney = counterOffer.offeredMoney || 0;
+    const requestedMoney = counterOffer.requestedMoney || 0;
+
+    const recipientOwnsOffered = offeredProperties.every(id => currentRecipient.properties.includes(id));
+    const senderOwnsRequested = requestedProperties.every(id => newSender.properties.includes(id));
+    if (!recipientOwnsOffered || !senderOwnsRequested) {
+      get().addLog('Invalid counter-trade: one player no longer owns offered assets', 'error');
+      return;
+    }
+
+    if (currentRecipient.money < offeredMoney) {
+      get().addLog('Invalid counter-trade: insufficient funds', 'error');
+      return;
+    }
+    if (newSender.money < requestedMoney) {
+      get().addLog('Invalid counter-trade: recipient cannot afford requested assets', 'error');
+      return;
+    }
+
+    const counterTradeOffer = {
+      id: `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`,
+      fromPlayerId: currentRecipient.id,
+      toPlayerId: newSender.id,
+      offeredProperties,
+      requestedProperties,
+      offeredMoney,
+      requestedMoney,
+      status: 'pending' as const,
+      createdAt: Date.now(),
+      revision: (trade.revision || 1) + 1,
+      previousTradeId: trade.id,
+    };
+
+    set({ trade: counterTradeOffer });
+    get().addLog(`${currentRecipient.name} sent a counter-offer to ${newSender.name}`, 'action', currentRecipient.id);
   },
 
    startAuction: (tileId) => {

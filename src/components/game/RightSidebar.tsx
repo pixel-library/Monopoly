@@ -1,26 +1,44 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { GameLog } from '../../types';
+import { GameLog, TradeOffer, BoardTile } from '../../types';
 import { useGameStore } from '../../state/gameStore';
 import { socketService } from '../../services/socketService';
-import { ArrowRightLeft, Users, FileText } from 'lucide-react';
+import { ArrowRightLeft, Users, Home, Hotel, Building2, FileText } from 'lucide-react';
+import { BOARD_TILES } from '../../data/boardData';
 
 interface RightSidebarProps {
   logs: GameLog[];
   roomCode?: string | null;
+  onCounterTrade?: (trade: TradeOffer) => void;
 }
 
-export const RightSidebar: React.FC<RightSidebarProps> = ({ logs, roomCode }) => {
-  const { players, currentPlayerIndex, setTradeModalOpen } = useGameStore();
+export const RightSidebar: React.FC<RightSidebarProps> = ({ logs, roomCode, onCounterTrade }) => {
+  const { players, currentPlayerIndex, setTradeModalOpen, myPlayerId, trade } = useGameStore();
   const currentPlayer = players[currentPlayerIndex];
   const isHotseat = !roomCode;
+  const localPlayer = isHotseat ? currentPlayer : players.find(p => p.id === myPlayerId);
   const canTrade = !isHotseat || currentPlayer?.isCurrentPlayer;
+
+  const myProperties = localPlayer?.properties
+    .map(id => BOARD_TILES.find(t => t.id === id))
+    .filter((tile): tile is BoardTile => !!tile) || [];
+
+  const getTradeRole = () => {
+    if (!trade || trade.status !== 'pending') return null;
+    if (trade.fromPlayerId === localPlayer?.id) return 'sender';
+    if (trade.toPlayerId === localPlayer?.id) return 'recipient';
+    return 'observer';
+  };
+
+  const tradeRole = getTradeRole();
+  const sender = trade ? players.find(p => p.id === trade.fromPlayerId) : null;
+  const receiver = trade ? players.find(p => p.id === trade.toPlayerId) : null;
 
   return (
     <motion.aside
       initial={{ x: 50, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      className="w-56 flex-shrink-0 flex flex-col border-l border-gray-200 bg-white overflow-hidden"
+      className="w-64 flex-shrink-0 flex flex-col border-l border-gray-200 bg-white overflow-hidden"
     >
       {/* Players */}
       <div className="p-3 border-b border-gray-200">
@@ -76,34 +94,108 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({ logs, roomCode }) =>
         </button>
       </div>
 
-      {/* Game Log */}
+      {/* My Properties */}
       <div className="flex-1 overflow-hidden flex flex-col min-h-0">
         <div className="p-3 pb-1.5">
           <div className="flex items-center gap-1.5">
-            <FileText size={14} className="text-gray-500" />
-            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Game Log</h3>
+            <Home size={14} className="text-gray-500" />
+            <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">My Properties</h3>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto px-3 pb-3 space-y-1">
-          {logs.slice(0, 20).map(log => (
-            <div
-              key={log.id}
-              className={`text-[11px] leading-snug p-1.5 rounded-md ${
-                log.type === 'success' ? 'bg-emerald-50 text-emerald-800' :
-                log.type === 'warning' ? 'bg-amber-50 text-amber-800' :
-                log.type === 'error' ? 'bg-red-50 text-red-800' :
-                log.type === 'action' ? 'bg-blue-50 text-blue-800' :
-                'bg-gray-50 text-gray-700'
-              }`}
-            >
-              {log.message}
-            </div>
-          ))}
-          {logs.length === 0 && (
-            <p className="text-[11px] text-gray-400 text-center py-4">No events yet</p>
+          {myProperties.length === 0 ? (
+            <p className="text-[11px] text-gray-400 text-center py-3">No properties yet</p>
+          ) : (
+            myProperties.map(tile => (
+              <div
+                key={tile.id}
+                className="flex items-center gap-2 p-2 rounded-lg border border-gray-100 bg-gray-50"
+              >
+                {tile.color && (
+                  <div className="w-3 h-3 rounded flex-shrink-0" style={{ backgroundColor: tile.color }} />
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] font-bold text-gray-900 truncate">{tile.name}</p>
+                  <p className="text-[10px] text-gray-500">{tile.type}</p>
+                </div>
+              </div>
+            ))
           )}
         </div>
       </div>
+
+      {/* Trade Requests */}
+      {trade && trade.status === 'pending' && (
+        <div className="border-t border-gray-200">
+          <div className="p-3 pb-1.5">
+            <div className="flex items-center gap-1.5">
+              <FileText size={14} className="text-gray-500" />
+              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Trade Request</h3>
+            </div>
+          </div>
+          <div className="px-3 pb-3 space-y-2">
+            <div className="text-[11px] text-gray-600">
+              <span className="font-bold">{sender?.name}</span>
+              {' → '}
+              <span className="font-bold">{receiver?.name}</span>
+            </div>
+            <div className="space-y-1">
+              <div>
+                <p className="text-[10px] text-gray-500 font-semibold">OFFERS</p>
+                {trade.offeredMoney > 0 && (
+                  <p className="text-[11px] text-gray-700">${trade.offeredMoney}</p>
+                )}
+                {trade.offeredProperties.map(id => {
+                  const tile = BOARD_TILES.find(t => t.id === id);
+                  return tile ? (
+                    <p key={id} className="text-[11px] text-gray-700 truncate">{tile.name}</p>
+                  ) : null;
+                })}
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-500 font-semibold">REQUESTS</p>
+                {trade.requestedMoney > 0 && (
+                  <p className="text-[11px] text-gray-700">${trade.requestedMoney}</p>
+                )}
+                {trade.requestedProperties.map(id => {
+                  const tile = BOARD_TILES.find(t => t.id === id);
+                  return tile ? (
+                    <p key={id} className="text-[11px] text-gray-700 truncate">{tile.name}</p>
+                  ) : null;
+                })}
+              </div>
+            </div>
+            {tradeRole === 'recipient' && (
+              <div className="flex gap-2 pt-1">
+                <button
+                  onClick={() => socketService.tradeResponse(roomCode || '', true)}
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded-lg text-[11px] transition-all"
+                >
+                  Accept
+                </button>
+                <button
+                  onClick={() => socketService.tradeResponse(roomCode || '', false)}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-1.5 rounded-lg text-[11px] transition-all"
+                >
+                  Reject
+                </button>
+                <button
+                  onClick={() => onCounterTrade?.(trade)}
+                  className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 font-bold py-1.5 rounded-lg text-[11px] transition-all"
+                >
+                  Modify
+                </button>
+              </div>
+            )}
+            {tradeRole === 'sender' && (
+              <p className="text-[10px] text-gray-500 text-center py-1">Waiting for response...</p>
+            )}
+            {tradeRole === 'observer' && (
+              <p className="text-[10px] text-gray-500 text-center py-1">Observing trade</p>
+            )}
+          </div>
+        </div>
+      )}
     </motion.aside>
   );
 };
