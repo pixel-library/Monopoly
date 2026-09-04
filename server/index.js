@@ -25,6 +25,48 @@ app.get('/api/health', (req, res) => {
 io.on('connection', (socket) => {
   console.log(`[Socket] Connected: ${socket.id}`);
 
+  const getSocketPlayerId = (socket) => {
+    const session = roomManager.socketToPlayer.get(socket.id);
+    return session?.playerId || null;
+  };
+
+  const getSocketRoomCode = (socket) => {
+    const session = roomManager.socketToPlayer.get(socket.id);
+    return session?.roomCode || null;
+  };
+
+  const authorizeOnlineAction = (socket, roomCode, options = {}) => {
+    const upperCode = (roomCode || getSocketRoomCode(socket))?.toUpperCase();
+    const gameState = roomManager.getRoom(upperCode);
+    const socketPlayerId = getSocketPlayerId(socket);
+
+    if (!upperCode || !gameState || !socketPlayerId) {
+      socket.emit('ACTION_REJECTED', { action: options.action, reason: 'INVALID_ROOM_OR_SESSION' });
+      return null;
+    }
+
+    if (options.requireCurrentTurn) {
+      const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+      if (!currentPlayer || currentPlayer.id !== socketPlayerId) {
+        socket.emit('ACTION_REJECTED', { action: options.action, reason: 'NOT_YOUR_TURN' });
+        return null;
+      }
+    }
+
+    if (options.requirePhase && gameState.phase !== options.requirePhase) {
+      socket.emit('ACTION_REJECTED', { action: options.action, reason: 'INVALID_PHASE' });
+      return null;
+    }
+
+    const player = gameState.players.find(p => p.id === socketPlayerId);
+    if (options.requireAlive && (!player || player.bankrupt)) {
+      socket.emit('ACTION_REJECTED', { action: options.action, reason: 'PLAYER_NOT_ACTIVE' });
+      return null;
+    }
+
+    return { gameState, player, socketPlayerId, roomCode: upperCode };
+  };
+
   socket.on('CREATE_ROOM', ({ hostPlayer, settings }, callback) => {
     try {
       const { roomCode, gameState } = roomManager.createRoom(hostPlayer, settings);
@@ -68,7 +110,9 @@ io.on('connection', (socket) => {
     const upperCode = roomCode.toUpperCase();
     const gameState = roomManager.getRoom(upperCode);
     if (gameState) {
-      const player = gameState.players.find(p => p.id === playerId);
+      const socketPlayerId = getSocketPlayerId(socket);
+      const targetId = playerId && gameState.players.some(p => p.id === playerId) ? playerId : socketPlayerId;
+      const player = gameState.players.find(p => p.id === targetId);
       if (player) {
         player.isReady = !player.isReady;
         io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
@@ -97,260 +141,225 @@ io.on('connection', (socket) => {
     }
   });
 
-  socket.on('ROLL_DICE', ({ roomCode, playerId }) => {
-    const upperCode = roomCode.toUpperCase();
-    const gameState = roomManager.getRoom(upperCode);
-    if (gameState && gameState.phase === 'PLAYING') {
-      const success = GameEngine.handleRollDice(gameState, playerId);
+  socket.on('ROLL_DICE', ({ roomCode }) => {
+    const ctx = authorizeOnlineAction(socket, roomCode, { action: 'ROLL_DICE', requireCurrentTurn: true, requirePhase: 'PLAYING', requireAlive: true });
+    if (!ctx) return;
+    const { gameState, player } = ctx;
+    const success = GameEngine.handleRollDice(gameState, player.id);
+    if (success) {
+      io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
+      BotAI.evaluateBotTurn(gameState, io, ctx.roomCode);
+    }
+  });
+
+   socket.on('BUY_PROPERTY', ({ roomCode, tileId }) => {
+    const ctx = authorizeOnlineAction(socket, roomCode, { action: 'BUY_PROPERTY', requireCurrentTurn: true, requirePhase: 'PLAYING', requireAlive: true });
+    if (!ctx) return;
+    const { gameState, player } = ctx;
+    const success = GameEngine.buyProperty(gameState, player.id, tileId);
+    if (success) {
+      io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
+    }
+  });
+
+   socket.on('BUY_HOUSE', ({ roomCode, tileId }) => {
+    const ctx = authorizeOnlineAction(socket, roomCode, { action: 'BUY_HOUSE', requireCurrentTurn: true, requirePhase: 'PLAYING', requireAlive: true });
+    if (!ctx) return;
+    const { gameState, player } = ctx;
+    const success = GameEngine.buyHouse(gameState, player.id, tileId);
+    if (success) {
+      io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
+    }
+  });
+
+   socket.on('BUY_HOTEL', ({ roomCode, tileId }) => {
+    const ctx = authorizeOnlineAction(socket, roomCode, { action: 'BUY_HOTEL', requireCurrentTurn: true, requirePhase: 'PLAYING', requireAlive: true });
+    if (!ctx) return;
+    const { gameState, player } = ctx;
+    const success = GameEngine.buyHotel(gameState, player.id, tileId);
+    if (success) {
+      io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
+    }
+  });
+
+   socket.on('DECLINE_PROPERTY', ({ roomCode, tileId }) => {
+    const ctx = authorizeOnlineAction(socket, roomCode, { action: 'DECLINE_PROPERTY', requireCurrentTurn: true, requirePhase: 'PLAYING', requireAlive: true });
+    if (!ctx) return;
+    const { gameState, player } = ctx;
+    GameEngine.declinePropertyPurchase(gameState, player.id, tileId);
+    io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
+    BotAI.evaluateBotTurn(gameState, io, ctx.roomCode);
+  });
+
+    socket.on('START_AUCTION', ({ roomCode, tileId }) => {
+    const ctx = authorizeOnlineAction(socket, roomCode, { action: 'START_AUCTION', requireCurrentTurn: true, requirePhase: 'PLAYING', requireAlive: true });
+    if (!ctx) return;
+    const { gameState, player } = ctx;
+    GameEngine.startAuction(gameState, tileId, player.id);
+    io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
+    BotAI.evaluateBotTurn(gameState, io, ctx.roomCode);
+  });
+
+   socket.on('PLACE_BID', ({ roomCode, bidAmount }) => {
+    const ctx = authorizeOnlineAction(socket, roomCode, { action: 'PLACE_BID', requirePhase: 'PLAYING', requireAlive: true });
+    if (!ctx) return;
+    const { gameState, player } = ctx;
+    GameEngine.placeBid(gameState, player.id, bidAmount);
+    io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
+    BotAI.evaluateBotTurn(gameState, io, ctx.roomCode);
+  });
+
+   socket.on('PASS_BID', ({ roomCode }) => {
+    const ctx = authorizeOnlineAction(socket, roomCode, { action: 'PASS_BID', requirePhase: 'PLAYING', requireAlive: true });
+    if (!ctx) return;
+    const { gameState, player } = ctx;
+    GameEngine.passBid(gameState, player.id);
+    io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
+    BotAI.evaluateBotTurn(gameState, io, ctx.roomCode);
+  });
+
+   socket.on('PROPOSE_TRADE', ({ roomCode, tradeData }) => {
+    const ctx = authorizeOnlineAction(socket, roomCode, { action: 'PROPOSE_TRADE', requirePhase: 'PLAYING', requireAlive: true });
+    if (!ctx) return;
+    const { gameState, player: sender } = ctx;
+    const receiver = gameState.players.find(p => p.id === tradeData.receiverId);
+    if (!receiver || sender.id === receiver.id) return;
+
+    const offeredProperties = tradeData.offeredPropertyIds || [];
+    const requestedProperties = tradeData.requestedPropertyIds || [];
+
+    const senderOwnsOffered = offeredProperties.every(id => sender.properties.includes(id));
+    const receiverOwnsRequested = requestedProperties.every(id => receiver.properties.includes(id));
+    if (!senderOwnsOffered || !receiverOwnsRequested) return;
+
+     gameState.trade = {
+       id: `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`,
+       fromPlayerId: sender.id,
+       toPlayerId: receiver.id,
+       offeredMoney: tradeData.offeredMoney || 0,
+       offeredProperties,
+       requestedMoney: tradeData.requestedMoney || 0,
+       requestedProperties,
+       status: 'pending',
+       createdAt: Date.now(),
+     };
+    GameEngine.addLog(gameState, `${sender.name} proposed a trade deal to ${receiver.name}!`, 'action');
+    io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
+  });
+
+    socket.on('END_TURN', ({ roomCode }) => {
+    const ctx = authorizeOnlineAction(socket, roomCode, { action: 'END_TURN', requireCurrentTurn: true, requirePhase: 'PLAYING', requireAlive: true });
+    if (!ctx) return;
+    const { gameState } = ctx;
+    GameEngine.endTurn(gameState);
+    io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
+    BotAI.evaluateBotTurn(gameState, io, ctx.roomCode);
+  });
+
+    socket.on('PAY_JAIL', ({ roomCode }) => {
+    const ctx = authorizeOnlineAction(socket, roomCode, { action: 'PAY_JAIL', requireCurrentTurn: true, requirePhase: 'PLAYING', requireAlive: true });
+    if (!ctx) return;
+    const { gameState, player } = ctx;
+    const success = GameEngine.leaveJail(gameState, player.id, true);
+    if (success) {
+      io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
+    }
+  });
+
+    socket.on('USE_JAIL_CARD', ({ roomCode }) => {
+    const ctx = authorizeOnlineAction(socket, roomCode, { action: 'USE_JAIL_CARD', requireCurrentTurn: true, requirePhase: 'PLAYING', requireAlive: true });
+    if (!ctx) return;
+    const { gameState, player } = ctx;
+    if (player.inJail && player.getOutOfJailCards > 0) {
+      const success = GameEngine.leaveJail(gameState, player.id, false);
       if (success) {
-        io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
-        BotAI.evaluateBotTurn(gameState, io, upperCode);
+        io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
       }
     }
   });
 
-   socket.on('BUY_PROPERTY', ({ roomCode, playerId, tileId }) => {
-     const upperCode = roomCode.toUpperCase();
-     const gameState = roomManager.getRoom(upperCode);
-     if (gameState) {
-       const success = GameEngine.buyProperty(gameState, playerId, tileId);
-       if (success) {
-         io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
+    socket.on('PAY_INCOME_TAX', ({ roomCode, fixed }) => {
+    const ctx = authorizeOnlineAction(socket, roomCode, { action: 'PAY_INCOME_TAX', requireCurrentTurn: true, requirePhase: 'PLAYING', requireAlive: true });
+    if (!ctx) return;
+    const { gameState, player } = ctx;
+    if (player && gameState.turnState.phase === 'TAX_DECISION') {
+       if (fixed) {
+         player.money -= 200;
+         GameEngine.addLog(gameState, `${player.name} paid $200 Income Tax`, 'warning', player.id);
+       } else {
+         const netWorth = GameEngine.calculateNetWorth(player);
+         const percent = Math.round(netWorth * 0.1);
+         player.money -= percent;
+         GameEngine.addLog(gameState, `${player.name} paid 10% (${percent}) Income Tax`, 'warning', player.id);
        }
-     }
-   });
+      gameState.turnState.phase = 'ACTION';
+      io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
+    }
+  });
 
-   socket.on('BUY_HOUSE', ({ roomCode, playerId, tileId }) => {
-     const upperCode = roomCode.toUpperCase();
-     const gameState = roomManager.getRoom(upperCode);
-     if (gameState) {
-       const success = GameEngine.buyHouse(gameState, playerId, tileId);
-       if (success) {
-         io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
-       }
-     }
-   });
-
-   socket.on('BUY_HOTEL', ({ roomCode, playerId, tileId }) => {
-     const upperCode = roomCode.toUpperCase();
-     const gameState = roomManager.getRoom(upperCode);
-     if (gameState) {
-       const success = GameEngine.buyHotel(gameState, playerId, tileId);
-       if (success) {
-         io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
-       }
-     }
-   });
-
-   socket.on('DECLINE_PROPERTY', ({ roomCode, playerId, tileId }) => {
-     const upperCode = roomCode.toUpperCase();
-     const gameState = roomManager.getRoom(upperCode);
-     if (gameState) {
-       GameEngine.declinePropertyPurchase(gameState, playerId, tileId);
-       io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
-       BotAI.evaluateBotTurn(gameState, io, upperCode);
-     }
-   });
-
-    socket.on('START_AUCTION', ({ roomCode, playerId, tileId }) => {
-      const upperCode = roomCode.toUpperCase();
-      const gameState = roomManager.getRoom(upperCode);
-      if (gameState) {
-        GameEngine.startAuction(gameState, tileId, playerId);
-        io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
-        BotAI.evaluateBotTurn(gameState, io, upperCode);
+    socket.on('TRADE_RESPONSE', ({ roomCode, accepted }) => {
+    const ctx = authorizeOnlineAction(socket, roomCode, { action: 'TRADE_RESPONSE', requirePhase: 'PLAYING', requireAlive: true });
+    if (!ctx) return;
+    const { gameState, player } = ctx;
+    if (gameState.trade && gameState.trade.status === 'pending' && gameState.trade.toPlayerId === player.id) {
+      if (accepted) {
+        GameEngine.executeTrade(gameState, gameState.trade.id);
+        BotAI.evaluateBotTurn(gameState, io, ctx.roomCode);
+      } else {
+        GameEngine.rejectTrade(gameState, gameState.trade.id);
+        BotAI.evaluateBotTurn(gameState, io, ctx.roomCode);
       }
-    });
+      io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
+    }
+  });
 
-   socket.on('PLACE_BID', ({ roomCode, playerId, bidAmount }) => {
-     const upperCode = roomCode.toUpperCase();
-     const gameState = roomManager.getRoom(upperCode);
-     if (gameState) {
-       GameEngine.placeBid(gameState, playerId, bidAmount);
-       io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
-       BotAI.evaluateBotTurn(gameState, io, upperCode);
-     }
-   });
+    socket.on('MORTGAGE_PROPERTY', ({ roomCode, tileId }) => {
+    const ctx = authorizeOnlineAction(socket, roomCode, { action: 'MORTGAGE_PROPERTY', requireCurrentTurn: true, requirePhase: 'PLAYING', requireAlive: true });
+    if (!ctx) return;
+    const { gameState, player } = ctx;
+    if (GameEngine.mortgageProperty(gameState, player.id, tileId)) {
+      io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
+    }
+  });
 
-   socket.on('PASS_BID', ({ roomCode, playerId }) => {
-     const upperCode = roomCode.toUpperCase();
-     const gameState = roomManager.getRoom(upperCode);
-     if (gameState) {
-       GameEngine.passBid(gameState, playerId);
-       io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
-       BotAI.evaluateBotTurn(gameState, io, upperCode);
-     }
-   });
+    socket.on('UNMORTGAGE_PROPERTY', ({ roomCode, tileId }) => {
+    const ctx = authorizeOnlineAction(socket, roomCode, { action: 'UNMORTGAGE_PROPERTY', requireCurrentTurn: true, requirePhase: 'PLAYING', requireAlive: true });
+    if (!ctx) return;
+    const { gameState, player } = ctx;
+    if (GameEngine.unmortgageProperty(gameState, player.id, tileId)) {
+      io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
+    }
+  });
 
-   socket.on('PROPOSE_TRADE', ({ roomCode, tradeData }) => {
-     const upperCode = roomCode.toUpperCase();
-     const gameState = roomManager.getRoom(upperCode);
-     if (gameState) {
-       const sender = gameState.players.find(p => p.id === tradeData.senderId);
-       const receiver = gameState.players.find(p => p.id === tradeData.receiverId);
-       if (!sender || !receiver || sender.id === receiver.id) return;
+    socket.on('SELL_HOUSES', ({ roomCode, tileId }) => {
+    const ctx = authorizeOnlineAction(socket, roomCode, { action: 'SELL_HOUSES', requireCurrentTurn: true, requirePhase: 'PLAYING', requireAlive: true });
+    if (!ctx) return;
+    const { gameState, player } = ctx;
+    if (GameEngine.sellHouses(gameState, player.id, tileId)) {
+      io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
+    }
+  });
 
-       const offeredProperties = tradeData.offeredPropertyIds || [];
-       const requestedProperties = tradeData.requestedPropertyIds || [];
+    socket.on('RESOLVE_DEBT', ({ roomCode, action, tileId }) => {
+    const ctx = authorizeOnlineAction(socket, roomCode, { action: 'RESOLVE_DEBT', requireCurrentTurn: true, requirePhase: 'PLAYING', requireAlive: true });
+    if (!ctx) return;
+    const { gameState, player } = ctx;
+    const changed = GameEngine.resolveDebt(gameState, player.id, action, tileId);
+    if (changed) {
+      io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
+      BotAI.evaluateBotTurn(gameState, io, ctx.roomCode);
+    }
+  });
 
-       const senderOwnsOffered = offeredProperties.every(id => sender.properties.includes(id));
-       const receiverOwnsRequested = requestedProperties.every(id => receiver.properties.includes(id));
-       if (!senderOwnsOffered || !receiverOwnsRequested) return;
-
-        gameState.trade = {
-          id: `${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`,
-          fromPlayerId: sender.id,
-          toPlayerId: receiver.id,
-          offeredMoney: tradeData.offeredMoney || 0,
-          offeredProperties,
-          requestedMoney: tradeData.requestedMoney || 0,
-          requestedProperties,
-          status: 'pending',
-          createdAt: Date.now(),
-        };
-       GameEngine.addLog(gameState, `${sender.name} proposed a trade deal to ${receiver.name}!`, 'action');
-       io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
-     }
-   });
-
-    socket.on('END_TURN', ({ roomCode }) => {
-     const upperCode = roomCode.toUpperCase();
-     const gameState = roomManager.getRoom(upperCode);
-     if (gameState) {
-       GameEngine.endTurn(gameState);
-       io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
-       BotAI.evaluateBotTurn(gameState, io, upperCode);
-     }
-   });
-
-    socket.on('PAY_JAIL', ({ roomCode, playerId }) => {
-      const upperCode = roomCode.toUpperCase();
-      const gameState = roomManager.getRoom(upperCode);
-      if (gameState && gameState.phase === 'PLAYING') {
-        const success = GameEngine.leaveJail(gameState, playerId, true);
-        if (success) {
-          io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
-        }
-      }
-    });
-
-    socket.on('USE_JAIL_CARD', ({ roomCode, playerId }) => {
-      const upperCode = roomCode.toUpperCase();
-      const gameState = roomManager.getRoom(upperCode);
-      if (gameState && gameState.phase === 'PLAYING') {
-        const player = gameState.players.find(p => p.id === playerId);
-        if (player && player.inJail && player.getOutOfJailCards > 0) {
-          const success = GameEngine.leaveJail(gameState, playerId, false);
-          if (success) {
-            io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
-          }
-        }
-      }
-    });
-
-    socket.on('PAY_INCOME_TAX', ({ roomCode, playerId, fixed }) => {
-      const upperCode = roomCode.toUpperCase();
-      const gameState = roomManager.getRoom(upperCode);
-      if (gameState && gameState.phase === 'PLAYING') {
-        const player = gameState.players.find(p => p.id === playerId);
-        if (player && gameState.turnState.phase === 'TAX_DECISION') {
-           if (fixed) {
-             player.money -= 200;
-             GameEngine.addLog(gameState, `${player.name} paid $200 Income Tax`, 'warning', player.id);
-           } else {
-             const netWorth = GameEngine.calculateNetWorth(player);
-             const percent = Math.round(netWorth * 0.1);
-             player.money -= percent;
-             GameEngine.addLog(gameState, `${player.name} paid 10% (${percent}) Income Tax`, 'warning', player.id);
-           }
-          gameState.turnState.phase = 'ACTION';
-          io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
-        }
-      }
-    });
-
-     socket.on('TRADE_RESPONSE', ({ roomCode, playerId, accepted }) => {
-       const upperCode = roomCode.toUpperCase();
-       const gameState = roomManager.getRoom(upperCode);
-       if (gameState && gameState.trade && gameState.trade.status === 'pending') {
-         if (accepted) {
-           GameEngine.executeTrade(gameState, gameState.trade.id);
-           BotAI.evaluateBotTurn(gameState, io, upperCode);
-         } else {
-           GameEngine.rejectTrade(gameState, gameState.trade.id);
-           BotAI.evaluateBotTurn(gameState, io, upperCode);
-         }
-         io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
-       }
-     });
-
-     socket.on('MORTGAGE_PROPERTY', ({ roomCode, playerId, tileId }) => {
-       const upperCode = roomCode.toUpperCase();
-       const gameState = roomManager.getRoom(upperCode);
-       if (gameState && gameState.phase === 'PLAYING') {
-         const player = gameState.players.find(p => p.id === playerId);
-         if (player && !player.bankrupt && gameState.players[gameState.currentPlayerIndex].id === playerId) {
-           if (GameEngine.mortgageProperty(gameState, playerId, tileId)) {
-             io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
-           }
-         }
-       }
-     });
-
-     socket.on('UNMORTGAGE_PROPERTY', ({ roomCode, playerId, tileId }) => {
-       const upperCode = roomCode.toUpperCase();
-       const gameState = roomManager.getRoom(upperCode);
-       if (gameState && gameState.phase === 'PLAYING') {
-         const player = gameState.players.find(p => p.id === playerId);
-         if (player && !player.bankrupt && gameState.players[gameState.currentPlayerIndex].id === playerId) {
-           if (GameEngine.unmortgageProperty(gameState, playerId, tileId)) {
-             io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
-           }
-         }
-       }
-     });
-
-     socket.on('SELL_HOUSES', ({ roomCode, playerId, tileId }) => {
-       const upperCode = roomCode.toUpperCase();
-       const gameState = roomManager.getRoom(upperCode);
-       if (gameState && gameState.phase === 'PLAYING') {
-         const player = gameState.players.find(p => p.id === playerId);
-         if (player && !player.bankrupt && gameState.players[gameState.currentPlayerIndex].id === playerId) {
-           if (GameEngine.sellHouses(gameState, playerId, tileId)) {
-             io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
-           }
-         }
-       }
-     });
-
-     socket.on('RESOLVE_DEBT', ({ roomCode, playerId, action, tileId }) => {
-       const upperCode = roomCode.toUpperCase();
-       const gameState = roomManager.getRoom(upperCode);
-       if (gameState && gameState.phase === 'PLAYING') {
-         const player = gameState.players.find(p => p.id === playerId);
-         if (player && !player.bankrupt && gameState.players[gameState.currentPlayerIndex].id === playerId) {
-           const changed = GameEngine.resolveDebt(gameState, playerId, action, tileId);
-           if (changed) {
-             io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
-             BotAI.evaluateBotTurn(gameState, io, upperCode);
-           }
-         }
-       }
-     });
-
-     socket.on('DECLARE_BANKRUPTCY', ({ roomCode, playerId }) => {
-       const upperCode = roomCode.toUpperCase();
-       const gameState = roomManager.getRoom(upperCode);
-       if (gameState && gameState.phase === 'PLAYING') {
-         const player = gameState.players.find(p => p.id === playerId);
-         if (player && !player.bankrupt && gameState.players[gameState.currentPlayerIndex].id === playerId) {
-           if (GameEngine.declareBankruptcy(gameState, playerId)) {
-             io.to(upperCode).emit('GAME_STATE_UPDATE', gameState);
-             BotAI.evaluateBotTurn(gameState, io, upperCode);
-           }
-         }
-       }
-     });
+    socket.on('DECLARE_BANKRUPTCY', ({ roomCode }) => {
+    const ctx = authorizeOnlineAction(socket, roomCode, { action: 'DECLARE_BANKRUPTCY', requireCurrentTurn: true, requirePhase: 'PLAYING', requireAlive: true });
+    if (!ctx) return;
+    const { gameState, player } = ctx;
+    if (GameEngine.declareBankruptcy(gameState, player.id)) {
+      io.to(ctx.roomCode).emit('GAME_STATE_UPDATE', gameState);
+      BotAI.evaluateBotTurn(gameState, io, ctx.roomCode);
+    }
+  });
 
     socket.on('disconnect', () => {
      const session = roomManager.socketToPlayer.get(socket.id);

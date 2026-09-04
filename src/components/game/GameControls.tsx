@@ -19,18 +19,21 @@ interface GameControlsProps {
   currentPlayer: Player;
   board: BoardTile[];
   roomCode?: string | null;
+  myPlayerId?: string | null;
 }
 
 export const GameControls: React.FC<GameControlsProps> = ({
   currentPlayer,
   board,
   roomCode,
+  myPlayerId,
 }) => {
   const { endTurn, bankHouses, bankHotels } = useGameStore();
 
   const currentTile = board[currentPlayer?.position ?? 0];
   const playerColor = PLAYER_COLOR_MAP[currentPlayer?.tokenId || ''] || '#888';
   const currentTileName = currentTile?.name || 'GO';
+  const isMyTurn = !!myPlayerId && currentPlayer?.id === myPlayerId;
 
   const handleEndTurn = () => {
     soundManager.play('click');
@@ -65,7 +68,9 @@ export const GameControls: React.FC<GameControlsProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-bold text-gray-500 uppercase">YOUR TURN</span>
+              <span className="text-[10px] font-bold text-gray-500 uppercase">
+                {isMyTurn ? 'YOUR TURN' : `WAITING FOR ${currentPlayer?.name?.toUpperCase()}`}
+              </span>
               {currentPlayer?.inJail && (
                 <span className="text-[10px] text-red-600 font-medium">IN JAIL</span>
               )}

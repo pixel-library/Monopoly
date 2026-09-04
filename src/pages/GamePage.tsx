@@ -324,6 +324,7 @@ export default function GamePage() {
             currentPlayer={currentPlayer}
             board={board}
             roomCode={roomCode}
+            myPlayerId={myPlayerId}
           />
         </main>
 

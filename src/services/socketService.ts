@@ -36,6 +36,20 @@ class SocketService {
         this.isConnected = false;
       });
 
+      this.socket.on('ACTION_REJECTED', (data: any) => {
+        console.warn('[SocketClient] Action rejected:', data);
+        const reason = data?.reason || 'UNKNOWN';
+        if (reason === 'NOT_YOUR_TURN') {
+          useGameStore.getState().addLog("It's not your turn.", 'warning');
+        } else if (reason === 'INVALID_PHASE') {
+          useGameStore.getState().addLog('You cannot perform that action right now.', 'warning');
+        } else if (reason === 'PLAYER_NOT_ACTIVE') {
+          useGameStore.getState().addLog('You cannot perform that action.', 'warning');
+        } else {
+          useGameStore.getState().addLog('Action rejected by server.', 'warning');
+        }
+      });
+
       this.socket.on('GAME_STATE_UPDATE', (serverState: any) => {
         if (serverState) {
           const store = useGameStore.getState();
